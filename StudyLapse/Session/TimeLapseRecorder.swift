@@ -150,7 +150,7 @@ final class TimeLapseRecorder {
         self.subject = subject
         clock = SessionClock()
         if mode.isEnabled, let capture, let pipeline {
-            pipeline.openSegment(transform: capture.transform)
+            pipeline.openSegment(dimensions: capture.outputDimensions)
         }
         state = .recording
 
@@ -303,7 +303,7 @@ final class TimeLapseRecorder {
         guard isInterrupted, let capture, let pipeline else { return }
         closeOpenGap()
         persistRecoveryRecord()
-        pipeline.openSegment(transform: capture.transform)
+        pipeline.openSegment(dimensions: capture.outputDimensions)
         capture.start()
         state = .recording
         log.notice("lapse resumed")

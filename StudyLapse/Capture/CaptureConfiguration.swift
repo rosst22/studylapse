@@ -54,7 +54,8 @@ struct CaptureConfiguration: Sendable, Equatable {
 
     // MARK: - Encoder settings
 
-    var videoOutputSettings: [String: Any] {
+    /// - Parameter dimensions: post-rotation size. Portrait capture is 720x1280.
+    func videoOutputSettings(dimensions: CGSize) -> [String: Any] {
         let compression: [String: Any] = [
             AVVideoAverageBitRateKey: averageBitRate,
             // One keyframe per output second. A time lapse is all jump cuts, so
@@ -66,20 +67,20 @@ struct CaptureConfiguration: Sendable, Equatable {
         ]
         return [
             AVVideoCodecKey: AVVideoCodecType.hevc,
-            AVVideoWidthKey: width,
-            AVVideoHeightKey: height,
+            AVVideoWidthKey: Int(dimensions.width),
+            AVVideoHeightKey: Int(dimensions.height),
             AVVideoCompressionPropertiesKey: compression,
         ]
     }
 
     /// Native biplanar YUV. Matches what the camera hands us, so the encoder
     /// takes it with zero conversion.
-    var pixelBufferAttributes: [String: Any] {
+    func pixelBufferAttributes(dimensions: CGSize) -> [String: Any] {
         [
             kCVPixelBufferPixelFormatTypeKey as String:
                 Int(kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange),
-            kCVPixelBufferWidthKey as String: width,
-            kCVPixelBufferHeightKey as String: height,
+            kCVPixelBufferWidthKey as String: Int(dimensions.width),
+            kCVPixelBufferHeightKey as String: Int(dimensions.height),
         ]
     }
 }

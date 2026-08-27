@@ -60,8 +60,13 @@ final class CaptureController: NSObject, @unchecked Sendable {
     private var startedConfiguringAt = CFAbsoluteTimeGetCurrent()
     private var observers: [NSObjectProtocol] = []
 
-    /// Video-track orientation metadata, captured once at session start.
-    private(set) var transform: CGAffineTransform = .identity
+    /// Dimensions the encoder should expect, AFTER rotation. Portrait capture
+    /// yields 720x1280, landscape 1280x720.
+    private(set) var outputDimensions = CGSize(width: 1280, height: 720)
+
+    /// Kept alive for the life of the session; it publishes the correct rotation
+    /// angle for the current physical device orientation.
+    private var rotationCoordinator: AVCaptureDevice.RotationCoordinator?
 
     init(config: CaptureConfiguration) {
         self.config = config
@@ -87,7 +92,6 @@ final class CaptureController: NSObject, @unchecked Sendable {
     // MARK: - Lifecycle
 
     func configure(interfaceOrientation: UIInterfaceOrientation) async throws {
-        transform = Self.transform(for: interfaceOrientation)
         try await withCheckedThrowingContinuation { (c: CheckedContinuation<Void, Error>) in
             captureQueue.async {
                 do {
@@ -144,17 +148,35 @@ final class CaptureController: NSObject, @unchecked Sendable {
         }
         session.addOutput(videoOutput)
 
-        // Keep buffers sensor-native landscape; orientation lives in the writer's
-        // transform. Rotating here would cost a full-frame copy per frame.
+        // Rotate the buffers themselves rather than tagging the track with a
+        // transform. Deriving that transform by hand is where the "upside down on
+        // playback" bug came from: the mapping has to account for the sensor's
+        // native orientation AND front-camera mirroring, and the two interact.
+        //
+        // RotationCoordinator exists to answer exactly this question, so let it.
+        // At one frame every four seconds the rotation cost is irrelevant.
+        let coordinator = AVCaptureDevice.RotationCoordinator(device: device, previewLayer: nil)
+        rotationCoordinator = coordinator
+
         if let connection = videoOutput.connection(with: .video) {
-            if connection.isVideoRotationAngleSupported(0) {
-                connection.videoRotationAngle = 0
+            let angle = coordinator.videoRotationAngleForHorizonLevelCapture
+            if connection.isVideoRotationAngleSupported(angle) {
+                connection.videoRotationAngle = angle
             }
             // Mirroring a front-camera lapse looks natural, like a selfie.
             if connection.isVideoMirroringSupported {
                 connection.automaticallyAdjustsVideoMirroring = false
                 connection.isVideoMirrored = (config.cameraPosition == .front)
             }
+
+            // A 90 or 270 degree rotation swaps the buffer's width and height, and
+            // the encoder must be told the post-rotation size or every frame is
+            // rejected.
+            let rotated = angle == 90 || angle == 270
+            outputDimensions = rotated
+                ? CGSize(width: config.height, height: config.width)
+                : CGSize(width: config.width, height: config.height)
+            log.info("rotation \(angle, format: .fixed(precision: 0))deg, output \(self.outputDimensions.width, format: .fixed(precision: 0))x\(self.outputDimensions.height, format: .fixed(precision: 0))")
         }
 
         installObservers()
@@ -266,18 +288,6 @@ final class CaptureController: NSObject, @unchecked Sendable {
         })
     }
 
-    // MARK: - Orientation
-
-    /// A video track stores rotation as a transform matrix. Landscape-left is the
-    /// sensor's native frame, so that one is identity.
-    private static func transform(for orientation: UIInterfaceOrientation) -> CGAffineTransform {
-        switch orientation {
-        case .portrait:           CGAffineTransform(rotationAngle: .pi / 2)
-        case .portraitUpsideDown: CGAffineTransform(rotationAngle: -.pi / 2)
-        case .landscapeRight:     CGAffineTransform(rotationAngle: .pi)
-        default:                  .identity
-        }
-    }
 }
 
 // MARK: - Frame decimation

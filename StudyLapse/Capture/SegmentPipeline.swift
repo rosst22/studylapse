@@ -42,13 +42,13 @@ final class SegmentPipeline: @unchecked Sendable {
 
     // MARK: - Called from the main actor
 
-    func openSegment(transform: CGAffineTransform) {
+    func openSegment(dimensions: CGSize) {
         queue.async {
             guard self.writer == nil else { return }
             let url = VideoStore.segmentURL(for: self.sessionID, index: self.segmentIndex)
             do {
                 self.writer = try TimeLapseSegmentWriter(url: url, config: self.config,
-                                                         transform: transform)
+                                                         dimensions: dimensions)
                 self.segmentIndex += 1
                 self.log.info("opened segment \(self.segmentIndex - 1)")
             } catch {

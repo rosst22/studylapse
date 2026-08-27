@@ -28,25 +28,24 @@ final class TimeLapseSegmentWriter {
     /// Frames successfully committed to this segment.
     var framesWritten: Int64 { frameIndex }
 
-    /// - Parameter transform: orientation metadata for the video track. We never
-    ///   rotate pixels; a video track carries a 2D transform matrix that players
-    ///   apply at playback. Rotating buffers would cost CPU on every frame.
-    init(url: URL, config: CaptureConfiguration, transform: CGAffineTransform) throws {
+    /// - Parameter dimensions: post-rotation frame size. Buffers arrive already
+    ///   upright from the capture connection, so the track needs no transform.
+    init(url: URL, config: CaptureConfiguration, dimensions: CGSize) throws {
         self.url = url
         self.config = config
 
         try? FileManager.default.removeItem(at: url)
         writer = try AVAssetWriter(outputURL: url, fileType: .mov)
 
-        input = AVAssetWriterInput(mediaType: .video, outputSettings: config.videoOutputSettings)
+        input = AVAssetWriterInput(mediaType: .video,
+                                   outputSettings: config.videoOutputSettings(dimensions: dimensions))
         // The source is a live camera, so appends must never block waiting for
         // the encoder. At 0.25 fps we will never actually saturate it.
         input.expectsMediaDataInRealTime = true
-        input.transform = transform
 
         adaptor = AVAssetWriterInputPixelBufferAdaptor(
             assetWriterInput: input,
-            sourcePixelBufferAttributes: config.pixelBufferAttributes
+            sourcePixelBufferAttributes: config.pixelBufferAttributes(dimensions: dimensions)
         )
 
         guard writer.canAdd(input) else {
