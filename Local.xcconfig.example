@@ -1,0 +1,7 @@
+// Copy this file to Local.xcconfig and fill in your Apple Developer Team ID.
+// Find it at https://developer.apple.com/account -> Membership, or run:
+//   security find-certificate -c "Apple Development" -p | openssl x509 -noout -subject
+// The OU field is your Team ID.
+//
+// Local.xcconfig is gitignored so signing identities stay out of the repository.
+STUDYLAPSE_TEAM_ID = YOUR_TEAM_ID_HERE
