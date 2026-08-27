@@ -4,9 +4,11 @@ import SwiftUI
 struct RootView: View {
     @Environment(TimeLapseRecorder.self) private var recorder
     @Environment(\.modelContext) private var context
+    @Environment(AuthController.self) private var auth
     @Query(sort: \StudySession.startedAt, order: .reverse) private var sessions: [StudySession]
     @State private var showingSession = false
     @State private var showingSettings = false
+    @State private var showingAccount = false
     @State private var pendingRecovery: ActiveSessionRecord?
     @State private var recovering = false
 
@@ -29,6 +31,16 @@ struct RootView: View {
                             Image(systemName: "gearshape")
                         }
                     }
+                    // Hidden entirely when no Supabase project is configured, so a
+                    // clone of the repo shows no dead account UI.
+                    if auth.isAvailable {
+                        ToolbarItem(placement: .topBarTrailing) {
+                            Button { showingAccount = true } label: {
+                                Image(systemName: auth.isSignedIn
+                                      ? "person.crop.circle.fill" : "person.crop.circle")
+                            }
+                        }
+                    }
                 }
                 .safeAreaInset(edge: .bottom) {
                     Button { showingSession = true } label: {
@@ -48,6 +60,9 @@ struct RootView: View {
         }
         .sheet(isPresented: $showingSettings) {
             SettingsView()
+        }
+        .sheet(isPresented: $showingAccount) {
+            AccountView()
         }
         .task { pendingRecovery = SessionRecovery.pending() }
         .alert("Unfinished session", isPresented: .constant(pendingRecovery != nil && !recovering),

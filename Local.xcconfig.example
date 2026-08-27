@@ -5,3 +5,9 @@
 //
 // Local.xcconfig is gitignored so signing identities stay out of the repository.
 STUDYLAPSE_TEAM_ID = YOUR_TEAM_ID_HERE
+
+// Supabase project settings -> API. The anon/publishable key is safe to ship in
+// a client; Row Level Security is what actually protects the data.
+// The $() escapes the // in https:// which xcconfig treats as a comment.
+SUPABASE_URL = https:/$()/YOUR_PROJECT_REF.supabase.co
+SUPABASE_ANON_KEY = YOUR_ANON_KEY

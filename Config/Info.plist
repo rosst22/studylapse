@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- Filled in from Local.xcconfig at build time. Xcode expands $(VAR) in
+	     Info.plist automatically (INFOPLIST_EXPAND_BUILD_SETTINGS defaults YES).
+	     Xcode still generates the standard keys and merges them with these. -->
+	<key>SupabaseURL</key>
+	<string>$(SUPABASE_URL)</string>
+	<key>SupabaseAnonKey</key>
+	<string>$(SUPABASE_ANON_KEY)</string>
+</dict>
+</plist>

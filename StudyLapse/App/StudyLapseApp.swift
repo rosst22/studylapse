@@ -4,6 +4,7 @@ import SwiftUI
 @main
 struct StudyLapseApp: App {
     @State private var recorder = TimeLapseRecorder()
+    @State private var auth = AuthController()
     @Environment(\.scenePhase) private var scenePhase
 
     init() {
@@ -21,6 +22,8 @@ struct StudyLapseApp: App {
             RootView()
                 .onAppear { Trace.launch("RootView appeared - app usable") }
                 .environment(recorder)
+                .environment(auth)
+                .task { await auth.restore() }
                 .preferredColorScheme(.dark)
         }
         .modelContainer(for: StudySession.self)
