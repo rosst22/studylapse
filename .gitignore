@@ -7,3 +7,7 @@ xcuserdata/
 
 # Local signing config - contains your Apple Team ID
 Local.xcconfig
+
+# Build output
+build/
+screenshots/*.mov

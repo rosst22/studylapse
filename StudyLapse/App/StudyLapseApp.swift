@@ -4,6 +4,17 @@ import SwiftUI
 @main
 struct StudyLapseApp: App {
     @State private var recorder = TimeLapseRecorder()
+    private let container: ModelContainer = {
+        #if DEBUG
+        if ScreenshotMode.isActive {
+            let config = ModelConfiguration(isStoredInMemoryOnly: true)
+            let container = try! ModelContainer(for: StudySession.self, configurations: config)
+            ScreenshotMode.seed(into: ModelContext(container))
+            return container
+        }
+        #endif
+        return try! ModelContainer(for: StudySession.self)
+    }()
     @Environment(\.scenePhase) private var scenePhase
 
     init() {
@@ -23,7 +34,7 @@ struct StudyLapseApp: App {
                 .environment(recorder)
                 .preferredColorScheme(.dark)
         }
-        .modelContainer(for: StudySession.self)
+        .modelContainer(container)
         .onChange(of: scenePhase) { _, phase in
             recorder.handleScenePhase(phase)
         }

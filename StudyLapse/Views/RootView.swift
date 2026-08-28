@@ -10,20 +10,11 @@ struct RootView: View {
     @State private var pendingRecovery: ActiveSessionRecord?
     @State private var recovering = false
 
-    private var totalTime: TimeInterval { sessions.reduce(0) { $0 + $1.duration } }
-
     var body: some View {
         NavigationStack {
             SessionListView(sessions: sessions)
                 .navigationTitle("StudyLapse")
                 .toolbar {
-                    ToolbarItem(placement: .topBarLeading) {
-                        if !sessions.isEmpty {
-                            Text(totalTime.studyDurationLabel + " total")
-                                .font(.caption.monospacedDigit())
-                                .foregroundStyle(.secondary)
-                        }
-                    }
                     ToolbarItem(placement: .topBarTrailing) {
                         Button { showingSettings = true } label: {
                             Image(systemName: "gearshape")
@@ -50,6 +41,18 @@ struct RootView: View {
             SettingsView()
         }
         .task { pendingRecovery = SessionRecovery.pending() }
+        #if DEBUG
+        .onAppear {
+            guard ScreenshotMode.isActive else { return }
+            switch ScreenshotMode.screen {
+            case "settings": showingSettings = true
+            case "session":
+                recorder.enterDemoState(elapsed: 4_517, frames: 1_129)
+                showingSession = true
+            default: break
+            }
+        }
+        #endif
         .alert("Unfinished session", isPresented: .constant(pendingRecovery != nil && !recovering),
                presenting: pendingRecovery) { record in
             Button("Save it") {

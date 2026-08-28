@@ -5,6 +5,8 @@ struct SessionListView: View {
     let sessions: [StudySession]
     @Environment(\.modelContext) private var context
 
+    private var totalTime: TimeInterval { sessions.reduce(0) { $0 + $1.duration } }
+
     var body: some View {
         List {
             if sessions.isEmpty {
@@ -14,12 +16,25 @@ struct SessionListView: View {
                     description: Text("Prop your phone up, hit Start, and get to work.")
                 )
             }
-            ForEach(sessions) { session in
-                NavigationLink(value: session.id) {
-                    row(session)
+            if !sessions.isEmpty {
+                Section {
+                    ForEach(sessions) { session in
+                        NavigationLink(value: session.id) {
+                            row(session)
+                        }
+                    }
+                    .onDelete(perform: delete)
+                } header: {
+                    HStack {
+                        Text(totalTime.studyDurationLabel + " studied")
+                            .foregroundStyle(.green)
+                        Text("·")
+                        Text("\(sessions.count) session\(sessions.count == 1 ? "" : "s")")
+                    }
+                    .font(.subheadline.weight(.medium))
+                    .textCase(nil)
                 }
             }
-            .onDelete(perform: delete)
         }
         .navigationDestination(for: UUID.self) { id in
             if let session = sessions.first(where: { $0.id == id }) {
@@ -49,6 +64,9 @@ struct SessionListView: View {
             .font(.caption)
             .foregroundStyle(.secondary)
         }
+        // Without this, the gap Label's icon drags the row separator inward and
+        // that one row's divider starts halfway across the screen.
+        .alignmentGuide(.listRowSeparatorLeading) { $0[.leading] }
     }
 
     private func delete(at offsets: IndexSet) {

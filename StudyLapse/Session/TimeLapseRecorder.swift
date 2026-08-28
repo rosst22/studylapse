@@ -244,6 +244,17 @@ final class TimeLapseRecorder {
         state = .idle
     }
 
+    #if DEBUG
+    /// Stage the recording screen for App Store screenshots. The views are the
+    /// real ones; only the state is supplied. DEBUG only.
+    func enterDemoState(elapsed: TimeInterval, frames: Int64) {
+        self.elapsed = elapsed
+        self.frameCount = frames
+        self.mode = .enabled
+        self.state = .recording
+    }
+    #endif
+
     // MARK: - iOS lifecycle
 
     /// Wire this to SwiftUI's `.onChange(of: scenePhase)`.
