@@ -93,15 +93,44 @@ background audio mode and playing silence) are an App Store rejection.
 
 ## Measured, not assumed
 
-Startup was instrumented rather than guessed at, on an iPhone 15 Pro:
+Timings are instrumented rather than guessed at. The whole path from tapping Start
+to the first frame on disk, on an iPhone 15 Pro (iOS 26.6):
 
 ```
-[launch]   31.6 ms  App.init
-[launch]   94.2 ms  RootView appeared — app usable
-[trace]    55.0 ms  capture session configured
-[trace]   271.2 ms  startRunning() returned
-[trace]   565.1 ms  first frame — preview live
+[launch]   72.2 ms  App.init
+[launch]  128.1 ms  RootView appeared — app usable
+[trace]     0.0 ms  tap Start session          ← origin
+[trace]    57.7 ms  capture configured -> startRunning()
+[trace]   274.1 ms  startRunning() returned
+[trace]   287.6 ms  framing screen on screen
+[trace]   291.3 ms  first frame — preview live
+[trace]  1082.5 ms  tap Start session (user framed the shot)
+[trace]  1088.9 ms  state = .recording
+[trace]  1117.9 ms  recording screen on screen
+[trace]  3899.8 ms  first frame written to segment
 ```
+
+The origin is the **tap**, not the start of `prepare()`. That matters: the trace
+used to reset its clock inside `prepare()`, which made everything before it — and
+everything after the first preview frame — invisible. A nine-second freeze on the
+framing → recording transition hid in that blind spot through several releases.
+
+### Never hand a running session to a second preview layer
+
+`AVCaptureVideoPreviewLayer.session = session` blocks the calling thread while
+AVFoundation rebuilds the session's connection graph. Against a stopped session
+that is free; against a **running** one it measured **9.0 seconds** on an iPhone 15
+Pro, on the main thread, with the capture pipeline stalled alongside it.
+
+It is easy to do by accident in SwiftUI. Two screens that each build their own
+`CameraPreview` own two layers, and SwiftUI constructs the replacement view
+*before* dismantling the outgoing one — so both layers briefly share one live
+session. The same thing fires on every dim → undim if the preview sits behind an
+`if !dimmed`.
+
+So `CaptureController` owns exactly one layer and binds it in `init`, while the
+session is still unconfigured and stopped. The views only re-parent that layer,
+which is a pointer swap and costs 0.5 ms. Same transition, 29 ms instead of 9,046.
 
 ## Running it
 

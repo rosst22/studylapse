@@ -22,7 +22,10 @@ struct RootView: View {
                     }
                 }
                 .safeAreaInset(edge: .bottom) {
-                    Button { showingSession = true } label: {
+                    Button {
+                        Trace.begin("tap Start session (list)")
+                        showingSession = true
+                    } label: {
                         Label("Start session", systemImage: "play.fill")
                             .font(.headline)
                             .frame(maxWidth: .infinity)

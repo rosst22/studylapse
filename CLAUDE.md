@@ -41,6 +41,13 @@ The simulator has no camera. Capture changes must be tested on a device.
    updates and restores.
 6. Videos go in Application Support, excluded from backup. Never `Caches` — iOS
    purges it and sessions would vanish.
+7. **Never assign `.session` to an `AVCaptureVideoPreviewLayer`, ever.**
+   `CaptureController` owns the one layer and binds it in `init`, before the
+   session is configured or running. Views receive that layer and only re-parent
+   it. Assigning a *running* session to a layer blocks the calling thread for ~9 s
+   (measured, iPhone 15 Pro). Two screens each building their own `CameraPreview`
+   is enough to trigger it, because SwiftUI makes the new view before dismantling
+   the old one — and so is wrapping the preview in `if !dimmed`.
 
 ## Hard rules for App Store review
 

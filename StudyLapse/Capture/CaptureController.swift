@@ -30,8 +30,17 @@ final class CaptureController: NSObject, @unchecked Sendable {
     /// no chance of appending to a writer that is being torn down.
     let captureQueue = DispatchQueue(label: "app.studylapse.capture", qos: .userInitiated)
 
-    /// Handed to the SwiftUI preview layer so the user can frame the shot.
-    var previewSession: AVCaptureSession { session }
+    /// The one and only preview layer for this session's lifetime.
+    ///
+    /// Attaching a layer to an *already running* `AVCaptureSession` blocks the
+    /// calling thread while AVFoundation rebuilds the connection graph -- measured
+    /// at 9.0 s on an iPhone 15 Pro. SwiftUI builds a replacement view before it
+    /// dismantles the old one, so letting each screen own its own layer meant two
+    /// layers briefly shared one running session, and the main thread froze.
+    ///
+    /// So the layer is created here, once, bound to the session while it is still
+    /// unconfigured and stopped (which is free). The views only re-parent it.
+    let previewLayer: AVCaptureVideoPreviewLayer
 
     /// Called on `captureQueue` for every frame we decide to keep. The buffer is
     /// only valid for the duration of this call.
@@ -70,6 +79,9 @@ final class CaptureController: NSObject, @unchecked Sendable {
 
     init(config: CaptureConfiguration) {
         self.config = config
+        // Bound before configure()/startRunning(), while the session is inert.
+        self.previewLayer = AVCaptureVideoPreviewLayer(session: session)
+        self.previewLayer.videoGravity = .resizeAspectFill
         super.init()
     }
 

@@ -76,8 +76,8 @@ final class TimeLapseRecorder {
         max(0, elapsed - gaps.reduce(0) { $0 + $1.duration })
     }
 
-    /// The live preview layer needs the session object itself.
-    var previewSession: AVCaptureSession? { capture?.previewSession }
+    /// The shared preview layer. Nil until the camera has been configured.
+    var previewLayer: AVCaptureVideoPreviewLayer? { capture?.previewLayer }
 
     private let log = Logger(subsystem: "app.studylapse", category: "recorder")
     private var capture: CaptureController?
@@ -93,7 +93,7 @@ final class TimeLapseRecorder {
 
     func prepare(interfaceOrientation: UIInterfaceOrientation = .portrait) async {
         guard state == .idle else { return }
-        Trace.begin("prepare()")
+        Trace.mark("prepare() begin")
         state = .preparing
 
         sessionID = UUID()
@@ -153,6 +153,7 @@ final class TimeLapseRecorder {
             pipeline.openSegment(dimensions: capture.outputDimensions)
         }
         state = .recording
+        Trace.mark("beginRecording: state = .recording")
 
         // Keep the screen awake so the common case never hits an interruption at
         // all. The session view goes near-black to make this cheap on OLED.

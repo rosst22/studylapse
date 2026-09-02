@@ -22,6 +22,7 @@ struct ActiveSessionView: View {
                 .padding(28)
         }
         .task {
+            Trace.mark("ActiveSessionView .task fired")
             subject = lastSubject.isEmpty ? "Study" : lastSubject
             var config = CaptureConfiguration()
             config.frameInterval = frameInterval
@@ -40,9 +41,9 @@ struct ActiveSessionView: View {
         case .idle, .preparing:
             ProgressView().tint(.green)
         case .ready:
-            framingScreen
+            framingScreen.onAppear { Trace.mark("framingScreen on screen") }
         default:
-            recordingScreen
+            recordingScreen.onAppear { Trace.mark("recordingScreen on screen") }
         }
     }
 
@@ -50,8 +51,8 @@ struct ActiveSessionView: View {
 
     private var framingScreen: some View {
         VStack(spacing: 20) {
-            if let session = recorder.previewSession, recorder.mode.isEnabled {
-                CameraPreview(session: session)
+            if let previewLayer = recorder.previewLayer, recorder.mode.isEnabled {
+                CameraPreview(previewLayer: previewLayer)
                     .aspectRatio(3.0 / 4.0, contentMode: .fit)
                     .clipShape(RoundedRectangle(cornerRadius: 20))
                     .overlay {
@@ -85,6 +86,7 @@ struct ActiveSessionView: View {
                 .multilineTextAlignment(.center)
 
             Button {
+                Trace.mark("tap Start session (framing) -> beginRecording")
                 lastSubject = subject
                 recorder.beginRecording(subject: subject)
                 scheduleAutoDim()
@@ -135,8 +137,8 @@ struct ActiveSessionView: View {
         VStack(spacing: 24) {
             Spacer()
 
-            if !dimmed, recorder.mode.isEnabled, let session = recorder.previewSession {
-                CameraPreview(session: session)
+            if !dimmed, recorder.mode.isEnabled, let previewLayer = recorder.previewLayer {
+                CameraPreview(previewLayer: previewLayer)
                     .frame(height: 180)
                     .clipShape(RoundedRectangle(cornerRadius: 16))
                     .transition(.opacity)

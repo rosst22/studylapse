@@ -34,6 +34,7 @@ final class SegmentPipeline: @unchecked Sendable {
     func ingest(_ pixelBuffer: CVPixelBuffer) {
         guard let writer else { return }   // between segments: silently drop
         if writer.append(pixelBuffer) {
+            if frameTotal == 0 { Trace.mark("FIRST FRAME WRITTEN to segment") }
             frameTotal += 1
             let total = frameTotal
             DispatchQueue.main.async { self.onFrameWritten?(total) }
